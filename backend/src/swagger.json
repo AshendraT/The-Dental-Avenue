@@ -1,0 +1,171 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "The Dental Avenue Clinic API",
+    "description": "API documentation for The Dental Avenue Appointment Management System. Includes authentication, smart slot booking, patient profile updates, and admin dashboards.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.thedentalavenue.lk",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:5000",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/api/auth/signup": {
+      "post": {
+        "summary": "Register a new patient",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "email": { "type": "string" },
+                  "password": { "type": "string", "description": "Min 6 chars, uppercase, lowercase, number" },
+                  "phone": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created successfully" },
+          "400": { "description": "Invalid input or duplicate email" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Authenticate patient or administrator",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Authentication successful, token returned" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/doctors": {
+      "get": {
+        "summary": "Get list of all doctor profiles",
+        "tags": ["Doctors"],
+        "responses": {
+          "200": { "description": "List of doctors fetched successfully" }
+        }
+      }
+    },
+    "/api/doctors/{id}/availability": {
+      "get": {
+        "summary": "Query calendar availability for specific doctor and date",
+        "tags": ["Doctors"],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "date", "in": "query", "required": true, "schema": { "type": "string" }, "description": "YYYY-MM-DD format" }
+        ],
+        "responses": {
+          "200": { "description": "List of slots returned with Green/Yellow/Red statuses" }
+        }
+      }
+    },
+    "/api/appointments/hold": {
+      "post": {
+        "summary": "Place a temporary 5-minute hold on a specific time slot",
+        "tags": ["Appointments"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["doctorId", "date", "timeSlot"],
+                "properties": {
+                  "doctorId": { "type": "string" },
+                  "date": { "type": "string" },
+                  "timeSlot": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Hold placed successfully" },
+          "409": { "description": "Slot already held or booked" }
+        }
+      }
+    },
+    "/api/appointments/book": {
+      "post": {
+        "summary": "Commit and finalize slot booking",
+        "tags": ["Appointments"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["doctorId", "date", "timeSlot", "patientDetails", "treatmentType"],
+                "properties": {
+                  "doctorId": { "type": "string" },
+                  "date": { "type": "string" },
+                  "timeSlot": { "type": "string" },
+                  "treatmentType": { "type": "string" },
+                  "symptoms": { "type": "string" },
+                  "emergencyLevel": { "type": "string", "enum": ["low", "medium", "high"] },
+                  "patientDetails": {
+                    "type": "object",
+                    "required": ["name", "email", "phone", "age", "gender"],
+                    "properties": {
+                      "name": { "type": "string" },
+                      "email": { "type": "string" },
+                      "phone": { "type": "string" },
+                      "age": { "type": "integer" },
+                      "gender": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Appointment finalized successfully" },
+          "409": { "description": "Double-booking prevention triggered" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

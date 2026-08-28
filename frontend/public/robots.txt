@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /book
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://www.thedentalavenue.lk/sitemap.xml
