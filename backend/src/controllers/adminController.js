@@ -411,7 +411,7 @@ exports.getAllPatients = async (req, res) => {
     const count = await User.countDocuments(query);
     const patients = await User.find(query)
       .select('-password')
-      .sort({ createdAt: -1 })
+      .sort({ patientId: 1, createdAt: 1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
