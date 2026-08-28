@@ -5,7 +5,8 @@ const { sendVerificationEmail, sendVerificationCodeEmail, sendPasswordResetEmail
 const { OAuth2Client } = require('google-auth-library');
 const { isValidEmail, isValidPhone } = require('../utils/validators');
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const googleClientId = process.env.GOOGLE_CLIENT_ID || '422868012066-1cbb2mqcbj33hd5sjupu6qrngd41pic5.apps.googleusercontent.com';
+const client = new OAuth2Client(googleClientId);
 
 // Helper to sign JWT
 const signToken = (id) => {
@@ -455,7 +456,7 @@ exports.googleAuth = async (req, res) => {
     // Verify Google ID Token
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID
+      audience: googleClientId
     });
 
     const payload = ticket.getPayload();
