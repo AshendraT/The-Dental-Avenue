@@ -378,7 +378,8 @@ exports.getAllPatients = async (req, res) => {
         { name: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
         { phone: { $regex: search, $options: 'i' } },
-        { nicId: { $regex: search, $options: 'i' } }
+        { nicId: { $regex: search, $options: 'i' } },
+        { patientId: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -388,6 +389,26 @@ exports.getAllPatients = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
+
+    // Auto-backfill patientId for legacy records missing patientId
+    for (let p of patients) {
+      if (!p.patientId) {
+        const lastPatient = await User.findOne({
+          role: 'patient',
+          patientId: { $regex: /^DC\d+$/ }
+        }).sort({ patientId: -1, createdAt: -1, _id: -1 }).select('patientId');
+
+        let nextNum = 1;
+        if (lastPatient && lastPatient.patientId) {
+          const match = lastPatient.patientId.match(/DC(\d+)/);
+          if (match && match[1]) {
+            nextNum = parseInt(match[1], 10) + 1;
+          }
+        }
+        p.patientId = `DC${String(nextNum).padStart(5, '0')}`;
+        await p.save();
+      }
+    }
 
     res.status(200).json({
       success: true,
@@ -833,6 +854,7 @@ exports.createPatient = async (req, res) => {
       message: 'Patient registered successfully',
       patient: {
         _id: patient._id,
+        patientId: patient.patientId,
         name: patient.name,
         email: patient.email,
         phone: patient.phone,

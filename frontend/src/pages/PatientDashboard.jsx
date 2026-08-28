@@ -573,9 +573,16 @@ const PatientDashboard = () => {
         <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-brand-500 to-tealbrand-500 text-white shadow-lg relative overflow-hidden">
           <div className="absolute right-0 top-0 opacity-10 text-9xl pointer-events-none translate-x-12 -translate-y-8 select-none font-extrabold">🦷</div>
           <div className="relative z-10 space-y-1">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-sans">
-              Welcome, {user?.name}!
-            </h1>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight font-sans">
+                Welcome, {user?.name}!
+              </h1>
+              {user?.patientId && (
+                <span className="inline-block bg-white/20 backdrop-blur-md text-white text-xs font-mono font-bold px-3 py-1 rounded-full border border-white/30 shadow-sm">
+                  Patient ID: {user.patientId}
+                </span>
+              )}
+            </div>
             <p className="text-white/80 text-xs sm:text-sm font-light">
               Review your upcoming clinic appointments, manage your patient medical profile, and update account settings.
             </p>

@@ -427,6 +427,23 @@ exports.resetPassword = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
+    if (user && user.role === 'patient' && !user.patientId) {
+      const lastPatient = await User.findOne({
+        role: 'patient',
+        patientId: { $regex: /^DC\d+$/ }
+      }).sort({ patientId: -1, createdAt: -1, _id: -1 }).select('patientId');
+
+      let nextNum = 1;
+      if (lastPatient && lastPatient.patientId) {
+        const match = lastPatient.patientId.match(/DC(\d+)/);
+        if (match && match[1]) {
+          nextNum = parseInt(match[1], 10) + 1;
+        }
+      }
+      user.patientId = `DC${String(nextNum).padStart(5, '0')}`;
+      await user.save();
+    }
+
     res.status(200).json({
       success: true,
       user

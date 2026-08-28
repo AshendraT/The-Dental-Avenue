@@ -29,6 +29,12 @@ const UserSchema = new mongoose.Schema({
     enum: ['patient', 'admin'],
     default: 'patient'
   },
+  patientId: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true
+  },
   phone: {
     type: String,
     default: ''
@@ -93,13 +99,34 @@ const UserSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Encrypt password using bcrypt
+// Auto-generate patientId (DC00001, DC00002...) and Encrypt password using bcrypt
 UserSchema.pre('save', async function (next) {
+  if (this.role === 'patient' && !this.patientId) {
+    try {
+      const lastPatient = await this.constructor.findOne({
+        role: 'patient',
+        patientId: { $regex: /^DC\d+$/ }
+      }).sort({ patientId: -1, createdAt: -1, _id: -1 }).select('patientId');
+
+      let nextNum = 1;
+      if (lastPatient && lastPatient.patientId) {
+        const match = lastPatient.patientId.match(/DC(\d+)/);
+        if (match && match[1]) {
+          nextNum = parseInt(match[1], 10) + 1;
+        }
+      }
+      this.patientId = `DC${String(nextNum).padStart(5, '0')}`;
+    } catch (err) {
+      console.error('Error generating patientId:', err);
+    }
+  }
+
   if (!this.isModified('password') || !this.password) {
     return next();
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 UserSchema.methods.matchPassword = async function (enteredPassword) {

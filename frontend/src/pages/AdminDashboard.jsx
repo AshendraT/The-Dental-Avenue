@@ -403,7 +403,8 @@ const AdminDashboard = () => {
     try {
       const res = await api.post('/admin/patients', patForm);
       if (res.success) {
-        addToast('Walk-in patient registered successfully!', 'success');
+        const patIdStr = res.patient?.patientId ? ` (${res.patient.patientId})` : '';
+        addToast(`Walk-in patient registered successfully!${patIdStr}`, 'success');
         setPatModalOpen(false);
         fetchPatients();
         fetchStats(); // update counters
@@ -1638,7 +1639,7 @@ const AdminDashboard = () => {
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><Search size={16} /></span>
                   <input
                     type="text"
-                    placeholder="Search patients by name, email, phone, or NIC..."
+                    placeholder="Search patients by Patient ID (DC00001), name, email, phone, or NIC..."
                     value={patSearch}
                     onChange={(e) => setPatSearch(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 focus:outline-none"
@@ -1675,6 +1676,7 @@ const AdminDashboard = () => {
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
                         <tr className="bg-slate-50 dark:bg-slate-850/50 border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
+                          <th className="p-4">Patient ID</th>
                           <th className="p-4">Patient Name</th>
                           {!selectedPatientForHistory && (
                             <>
@@ -1699,6 +1701,9 @@ const AdminDashboard = () => {
                                 handleSelectPatient(pat);
                               }}
                             >
+                              <td className="p-4 font-mono font-bold text-brand-600 dark:text-brand-400 text-xs">
+                                {pat.patientId || 'N/A'}
+                              </td>
                               <td className="p-4 font-bold text-slate-700 dark:text-slate-205">
                                 {pat.name}
                                 {selectedPatientForHistory && (
@@ -1779,7 +1784,14 @@ const AdminDashboard = () => {
                       {/* Patient Basic Profile Info */}
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-50 dark:border-slate-800 pb-4">
                         <div>
-                          <span className="text-[10px] text-brand-500 font-bold uppercase tracking-widest">Selected Patient Profile</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-brand-500 font-bold uppercase tracking-widest">Selected Patient Profile</span>
+                            {selectedPatientForHistory.patientId && (
+                              <span className="text-[10px] font-mono font-bold bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 px-2 py-0.5 rounded border border-brand-100 dark:border-brand-900/20">
+                                {selectedPatientForHistory.patientId}
+                              </span>
+                            )}
+                          </div>
                           <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mt-1 font-sans flex items-center gap-2">
                             👤 {selectedPatientForHistory.name}
                           </h3>
