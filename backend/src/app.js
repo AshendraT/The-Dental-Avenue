@@ -34,14 +34,20 @@ app.use(helmet({
 }));
 
 // 2. CORS setup
-const allowedOrigins = [];
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://*.vercel.app',
+  'https://thedentalavenue.lk',
+  'https://www.thedentalavenue.lk',
+  'https://*.thedentalavenue.lk'
+];
+
 if (process.env.ALLOWED_ORIGINS) {
   allowedOrigins.push(...process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()));
-} else if (process.env.FRONTEND_URL) {
+}
+if (process.env.FRONTEND_URL) {
   allowedOrigins.push(process.env.FRONTEND_URL.trim());
-} else {
-  allowedOrigins.push('http://localhost:5173');
-  allowedOrigins.push('https://*.vercel.app');
 }
 
 const corsOptions = {
