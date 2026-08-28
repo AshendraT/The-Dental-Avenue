@@ -134,7 +134,7 @@ const PatientDashboard = () => {
     navigate('/book', {
       state: {
         rescheduleAppId: app._id,
-        preSelectedDoctorId: app.doctorId._id,
+        preSelectedDoctorId: app.doctorId?._id || '',
         preSelectedTreatment: app.treatmentType
       }
     });
@@ -501,7 +501,7 @@ const PatientDashboard = () => {
     doc.getElementById('val-pnic').textContent = user?.nicId || 'N/A';
     doc.getElementById('val-pdob').textContent = formattedDob;
     doc.getElementById('val-appid').textContent = app._id || '';
-    doc.getElementById('val-docname').textContent = app.doctorId.name || '';
+    doc.getElementById('val-docname').textContent = app.doctorId?.name || 'Assigned Specialist';
     doc.getElementById('val-date').textContent = app.date || '';
     doc.getElementById('val-time').textContent = app.timeSlot || '';
     doc.getElementById('val-treatment').textContent = app.treatmentType || '';
@@ -695,13 +695,13 @@ const PatientDashboard = () => {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-slate-800/60 pb-4 ml-2">
                           <div className="flex items-center gap-4">
                             <img
-                              src={app.doctorId.profileImage || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150&h=150'}
-                              alt={app.doctorId.name}
+                              src={app.doctorId?.profileImage || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150&h=150'}
+                              alt={app.doctorId?.name || 'Doctor'}
                               className="w-12 h-12 rounded-2xl object-cover shrink-0 border border-slate-100 dark:border-slate-800 shadow-sm"
                             />
                             <div>
                               <h3 className="font-extrabold text-slate-800 dark:text-slate-100 text-sm md:text-base">
-                                {app.doctorId.name}
+                                {app.doctorId?.name || 'Assigned Specialist'}
                               </h3>
                               <span className="inline-block text-[10px] font-bold text-brand-500 mt-0.5 bg-brand-50 dark:bg-brand-950/20 px-2 py-0.5 rounded border border-brand-100/20 dark:border-brand-900/10">
                                 {app.treatmentType}
