@@ -221,7 +221,7 @@ exports.getAllAppointments = async (req, res) => {
     // Populate fields on aggregate output documents
     const populatedAppointments = await Appointment.populate(appointments, [
       { path: 'doctorId', select: 'name' },
-      { path: 'patientId', select: 'name email phone' }
+      { path: 'patientId', select: 'name email phone patientId' }
     ]);
 
     res.status(200).json({
@@ -371,6 +371,31 @@ exports.getAllPatients = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = '' } = req.query;
 
+    // Auto-backfill patientId for legacy records missing patientId BEFORE searching/fetching
+    const unassignedPatients = await User.find({
+      role: 'patient',
+      $or: [{ patientId: { $exists: false } }, { patientId: '' }, { patientId: null }]
+    }).sort({ createdAt: 1, _id: 1 });
+
+    if (unassignedPatients.length > 0) {
+      for (const p of unassignedPatients) {
+        const lastPatient = await User.findOne({
+          role: 'patient',
+          patientId: { $regex: /^DC\d+$/ }
+        }).sort({ patientId: -1, createdAt: -1, _id: -1 }).select('patientId');
+
+        let nextNum = 1;
+        if (lastPatient && lastPatient.patientId) {
+          const match = lastPatient.patientId.match(/DC(\d+)/);
+          if (match && match[1]) {
+            nextNum = parseInt(match[1], 10) + 1;
+          }
+        }
+        p.patientId = `DC${String(nextNum).padStart(5, '0')}`;
+        await p.save();
+      }
+    }
+
     const query = { role: 'patient', isVerified: true };
 
     if (search) {
@@ -389,26 +414,6 @@ exports.getAllPatients = async (req, res) => {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
-
-    // Auto-backfill patientId for legacy records missing patientId
-    for (let p of patients) {
-      if (!p.patientId) {
-        const lastPatient = await User.findOne({
-          role: 'patient',
-          patientId: { $regex: /^DC\d+$/ }
-        }).sort({ patientId: -1, createdAt: -1, _id: -1 }).select('patientId');
-
-        let nextNum = 1;
-        if (lastPatient && lastPatient.patientId) {
-          const match = lastPatient.patientId.match(/DC(\d+)/);
-          if (match && match[1]) {
-            nextNum = parseInt(match[1], 10) + 1;
-          }
-        }
-        p.patientId = `DC${String(nextNum).padStart(5, '0')}`;
-        await p.save();
-      }
-    }
 
     res.status(200).json({
       success: true,

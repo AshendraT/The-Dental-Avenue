@@ -1503,7 +1503,13 @@ const AdminDashboard = () => {
                       {appointments.map((app) => (
                         <tr key={app._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
                           <td className="p-4 font-bold text-slate-700 dark:text-slate-200">
-                            {app.patientDetails.name} <br />
+                            {app.patientDetails.name}
+                            {app.patientId?.patientId && (
+                              <span className="inline-block font-mono font-bold text-[10px] bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 px-1.5 py-0.5 rounded border border-brand-100 dark:border-brand-900/20 ml-2">
+                                {app.patientId.patientId}
+                              </span>
+                            )}
+                            <br />
                             <span className="text-[10px] text-slate-400 font-normal">Age: {app.patientDetails.age} | {app.patientDetails.gender}</span>
                           </td>
                           <td className="p-4 text-slate-500">
