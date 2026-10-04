@@ -776,7 +776,7 @@ exports.getPatientHistory = async (req, res) => {
 // @access  Private (Admin)
 exports.createPatient = async (req, res) => {
   try {
-    const { name, email, phone, nicId, address, dob, gender, medicalNotes, password } = req.body;
+    const { name, email, noEmail, phone, nicId, address, dob, gender, medicalNotes, password } = req.body;
 
     if (!name || typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({
@@ -785,7 +785,16 @@ exports.createPatient = async (req, res) => {
       });
     }
 
-    if (!email || !isValidEmail(email)) {
+    let finalEmail = email ? email.trim().toLowerCase() : '';
+    if (noEmail || !finalEmail) {
+      const stamp = Date.now().toString().slice(-6);
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+      const identifier = cleanPhone || (nicId ? nicId.trim() : `${stamp}${rand}`);
+      finalEmail = `noemail_${identifier}@dentalavenue.lk`;
+    }
+
+    if (!isValidEmail(finalEmail)) {
       return res.status(400).json({
         success: false,
         message: 'Please provide a valid patient email address'
@@ -814,7 +823,7 @@ exports.createPatient = async (req, res) => {
     }
 
     // Check if email already exists
-    const userExists = await User.findOne({ email: email.trim().toLowerCase() });
+    const userExists = await User.findOne({ email: finalEmail });
     if (userExists) {
       return res.status(400).json({
         success: false,
@@ -833,8 +842,8 @@ exports.createPatient = async (req, res) => {
     }
 
     const patient = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: finalEmail,
       phone: phone || '',
       nicId: nicId || '',
       address: address || '',
@@ -1049,6 +1058,55 @@ exports.createAppointmentForPatient = async (req, res) => {
       success: true,
       message: 'Appointment booked successfully',
       appointment
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Delete a patient record completely
+// @route   DELETE /api/admin/patients/:id
+// @access  Private (Admin)
+exports.deletePatient = async (req, res) => {
+  try {
+    const patientId = req.params.id;
+
+    const patient = await User.findById(patientId);
+    if (!patient) {
+      return res.status(404).json({
+        success: false,
+        message: 'Patient record not found'
+      });
+    }
+
+    if (patient.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete an administrator account'
+      });
+    }
+
+    // Remove associated appointments and notifications
+    await Appointment.deleteMany({ patientId });
+    await Notification.deleteMany({ recipient: patientId });
+
+    // Remove patient account
+    await User.deleteOne({ _id: patientId });
+
+    // Log admin action
+    await logAdminAction(
+      req.user.id,
+      'DELETE_PATIENT',
+      `Deleted patient ${patientId} (${patient.name}) and all related appointment records`,
+      req.ip
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `Patient ${patient.name} and all related records deleted successfully`
     });
   } catch (error) {
     res.status(500).json({
