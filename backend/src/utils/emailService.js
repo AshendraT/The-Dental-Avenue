@@ -72,6 +72,11 @@ const getTransporter = () => {
 const sendEmail = async (options) => {
   const from = process.env.EMAIL_FROM || 'thedentalavenue.lk@gmail.com';
 
+  if (!options || !options.to || options.to.includes('noemail_')) {
+    console.log(`[EMAIL SKIPPED] No email sent for placeholder address: ${options?.to}`);
+    return { skipped: true };
+  }
+
   // 1. Check for Resend API Key (Runs over HTTPS port 443)
   if (process.env.RESEND_API_KEY) {
     try {
