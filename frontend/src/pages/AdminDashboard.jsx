@@ -61,6 +61,7 @@ const AdminDashboard = () => {
   const [patForm, setPatForm] = useState({
     name: '',
     email: '',
+    noEmail: false,
     phone: '',
     nicId: '',
     dob: '',
@@ -386,6 +387,7 @@ const AdminDashboard = () => {
     setPatForm({
       name: '',
       email: '',
+      noEmail: false,
       phone: '',
       nicId: '',
       dob: '',
@@ -395,6 +397,28 @@ const AdminDashboard = () => {
       password: 'Avenue@2026'
     });
     setPatModalOpen(true);
+  };
+
+  const handleNoEmailToggle = (e) => {
+    const isChecked = e.target.checked;
+    if (isChecked) {
+      const stamp = Date.now().toString().slice(-6);
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      const cleanPhone = patForm.phone ? patForm.phone.replace(/\D/g, '') : '';
+      const identifier = cleanPhone || (patForm.nicId ? patForm.nicId.trim() : `${stamp}${rand}`);
+      const placeholder = `noemail_${identifier}@dentalavenue.lk`;
+      setPatForm(prev => ({
+        ...prev,
+        noEmail: true,
+        email: placeholder
+      }));
+    } else {
+      setPatForm(prev => ({
+        ...prev,
+        noEmail: false,
+        email: ''
+      }));
+    }
   };
 
   const handlePatSubmit = async (e) => {
@@ -581,6 +605,26 @@ const AdminDashboard = () => {
       }
     } catch (err) {
       addToast(err.message || 'Failed to toggle block status', 'error');
+    }
+  };
+
+  // Delete Patient Record
+  const handleDeletePatient = async (patientId, patientName) => {
+    if (!window.confirm(`Are you sure you want to permanently delete patient "${patientName}" and all their associated records? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      const res = await api.delete(`/admin/patients/${patientId}`);
+      if (res.success) {
+        addToast(`Patient "${patientName}" deleted successfully!`, 'success');
+        if (selectedPatientForHistory && selectedPatientForHistory._id === patientId) {
+          setSelectedPatientForHistory(null);
+        }
+        fetchPatients();
+        fetchStats();
+      }
+    } catch (err) {
+      addToast(err.message || 'Failed to delete patient record', 'error');
     }
   };
 
@@ -1713,12 +1757,20 @@ const AdminDashboard = () => {
                               <td className="p-4 font-bold text-slate-700 dark:text-slate-205">
                                 {pat.name}
                                 {selectedPatientForHistory && (
-                                  <span className="block text-[10px] text-slate-400 font-light mt-0.5">{pat.email}</span>
+                                  <span className="block text-[10px] text-slate-400 font-light mt-0.5">
+                                    {pat.email?.includes('noemail_') ? 'No Email' : pat.email}
+                                  </span>
                                 )}
                               </td>
                               {!selectedPatientForHistory && (
                                 <>
-                                  <td className="p-4 text-slate-500">{pat.email}</td>
+                                  <td className="p-4 text-slate-500">
+                                    {pat.email?.includes('noemail_') ? (
+                                      <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">No Email</span>
+                                    ) : (
+                                      pat.email
+                                    )}
+                                  </td>
                                   <td className="p-4 text-slate-500">{pat.phone || 'N/A'}</td>
                                   <td className="p-4 text-slate-500">{pat.nicId || 'N/A'}</td>
                                 </>
@@ -1730,16 +1782,24 @@ const AdminDashboard = () => {
                                   <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-900/10 uppercase tracking-wide">Active</span>
                                 )}
                               </td>
-                              <td className="p-4 text-right flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                              <td className="p-4 text-right flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                                 <button
                                   onClick={() => handleToggleBlock(pat._id)}
                                   className={`p-1.5 rounded border text-xs font-semibold ${pat.isBlocked
                                     ? 'text-emerald-500 border-emerald-100 dark:border-emerald-900/10 hover:bg-emerald-50 dark:hover:bg-emerald-950/20'
-                                    : 'text-red-500 border-red-100 dark:border-red-900/10 hover:bg-red-50 dark:hover:bg-red-950/20'
+                                    : 'text-amber-600 border-amber-100 dark:border-amber-900/10 hover:bg-amber-50 dark:hover:bg-amber-950/20'
                                     }`}
                                 >
-                                  <Ban size={14} className="inline mr-1" />
+                                  <Ban size={13} className="inline mr-1" />
                                   {pat.isBlocked ? 'Activate' : 'Block'}
+                                </button>
+                                <button
+                                  onClick={() => handleDeletePatient(pat._id, pat.name)}
+                                  className="p-1.5 rounded border text-xs font-semibold text-rose-500 border-rose-100 dark:border-rose-900/10 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                                  title="Delete Patient Record"
+                                >
+                                  <Trash2 size={13} className="inline mr-1" />
+                                  Delete
                                 </button>
                               </td>
                             </tr>
@@ -1802,14 +1862,23 @@ const AdminDashboard = () => {
                             👤 {selectedPatientForHistory.name}
                           </h3>
                         </div>
-                        <Button
-                          onClick={() => handleOpenBookModal(selectedPatientForHistory)}
-                          variant="secondary"
-                          size="sm"
-                          className="text-xs font-bold gap-1 px-3 py-2 self-start sm:self-auto"
-                        >
-                          <Plus size={12} /> Book Appointment
-                        </Button>
+                        <div className="flex gap-2 items-center self-start sm:self-auto">
+                          <button
+                            onClick={() => handleDeletePatient(selectedPatientForHistory._id, selectedPatientForHistory.name)}
+                            className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 border border-rose-100 dark:border-rose-900/20 rounded-lg text-xs font-bold flex items-center gap-1 transition-all"
+                            title="Delete Patient Record"
+                          >
+                            <Trash2 size={13} /> Delete Record
+                          </button>
+                          <Button
+                            onClick={() => handleOpenBookModal(selectedPatientForHistory)}
+                            variant="secondary"
+                            size="sm"
+                            className="text-xs font-bold gap-1 px-3 py-2"
+                          >
+                            <Plus size={12} /> Book Appointment
+                          </Button>
+                        </div>
                       </div>
 
                       {loadingHistory ? (
@@ -1825,7 +1894,13 @@ const AdminDashboard = () => {
                               <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl text-xs font-semibold">
                                 <div>
                                   <span className="text-slate-400 uppercase tracking-wider block text-[10px]">Email Address</span>
-                                  <span className="text-slate-800 dark:text-slate-200 font-bold block mt-0.5 break-all">{selectedPatientForHistory.email}</span>
+                                  <span className="text-slate-800 dark:text-slate-200 font-bold block mt-0.5 break-all">
+                                    {selectedPatientForHistory.email?.includes('noemail_') ? (
+                                      <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">No Email</span>
+                                    ) : (
+                                      selectedPatientForHistory.email
+                                    )}
+                                  </span>
                                 </div>
                                 <div>
                                   <span className="text-slate-400 uppercase tracking-wider block text-[10px]">Phone Number</span>
@@ -2478,7 +2553,13 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 text-xs font-semibold">
               <div>
                 <span className="text-slate-400 uppercase tracking-wider block">Email Address</span>
-                <span className="text-slate-800 dark:text-slate-200 font-bold block mt-0.5 break-all">{selectedPatientForHistory?.email}</span>
+                <span className="text-slate-800 dark:text-slate-200 font-bold block mt-0.5 break-all">
+                  {selectedPatientForHistory?.email?.includes('noemail_') ? (
+                    <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">No Email</span>
+                  ) : (
+                    selectedPatientForHistory?.email
+                  )}
+                </span>
               </div>
               <div>
                 <span className="text-slate-400 uppercase tracking-wider block">Phone Number</span>
@@ -2820,14 +2901,27 @@ const AdminDashboard = () => {
               value={patForm.name}
               onChange={(e) => setPatForm({ ...patForm, name: e.target.value })}
             />
-            <Input
-              label="Email Address"
-              id="pat-email"
-              type="email"
-              required
-              value={patForm.email}
-              onChange={(e) => setPatForm({ ...patForm, email: e.target.value })}
-            />
+            <div>
+              <Input
+                label="Email Address"
+                id="pat-email"
+                type="email"
+                required={!patForm.noEmail}
+                disabled={patForm.noEmail}
+                value={patForm.email}
+                onChange={(e) => setPatForm({ ...patForm, email: e.target.value })}
+                placeholder={patForm.noEmail ? "Auto-generated placeholder email" : "e.g. patient@gmail.com"}
+              />
+              <label className="flex items-center gap-2 mt-2 cursor-pointer text-xs text-slate-600 dark:text-slate-400 font-medium">
+                <input
+                  type="checkbox"
+                  checked={patForm.noEmail || false}
+                  onChange={handleNoEmailToggle}
+                  className="rounded border-slate-300 dark:border-slate-700 text-brand-500 focus:ring-brand-500/20"
+                />
+                <span>Patient has no email address</span>
+              </label>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2882,17 +2976,21 @@ const AdminDashboard = () => {
             <Input
               label="Login Password"
               id="pat-password"
-              required
-              value={patForm.password}
+              type="password"
+              required={!patForm.noEmail}
+              disabled={patForm.noEmail}
+              value={patForm.noEmail ? '' : patForm.password}
               onChange={(e) => setPatForm({ ...patForm, password: e.target.value })}
-              helperText="Prefilled default: Avenue@2026"
+              placeholder={patForm.noEmail ? "Password disabled for No Email patients" : "••••••••"}
+              helperText={patForm.noEmail ? "Account login password is disabled for No Email patients" : "Prefilled default: Avenue@2026"}
             />
             <div className="flex items-end pb-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="w-full text-xs py-2.5 font-bold"
+                disabled={patForm.noEmail}
+                className="w-full text-xs py-2.5 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => {
                   const chars = 'abcdefghijklmnopqrstuvwxyz';
                   const caps = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -2944,7 +3042,7 @@ const AdminDashboard = () => {
             <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block">Patient Overview</span>
             <div className="flex justify-between items-center font-semibold text-slate-700 dark:text-slate-300">
               <span>{bookForm.patientName} ({bookForm.patientGender || 'Gender: N/A'})</span>
-              <span className="text-slate-400">Email: {bookForm.patientEmail}</span>
+              <span className="text-slate-400">Email: {bookForm.patientEmail?.includes('noemail_') ? 'No Email' : bookForm.patientEmail}</span>
             </div>
           </div>
 
