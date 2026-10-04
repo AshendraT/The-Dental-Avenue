@@ -14,6 +14,7 @@ const {
   getAdminLogs,
   getPatientHistory,
   createPatient,
+  deletePatient,
   createAppointmentForPatient
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -28,6 +29,7 @@ router.get('/appointments', getAllAppointments);
 router.put('/appointments/:id/status', validateParamId('id'), updateAppointmentStatus);
 router.get('/patients', getAllPatients);
 router.get('/patients/:id/history', validateParamId('id'), getPatientHistory);
+router.delete('/patients/:id', validateParamId('id'), deletePatient);
 router.put('/users/:id/block', validateParamId('id'), toggleBlockUser);
 router.post('/doctors', addDoctor);
 router.put('/doctors/:id', validateParamId('id'), updateDoctor);
